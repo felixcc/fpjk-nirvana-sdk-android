@@ -1,0 +1,150 @@
+apply plugin: 'com.android.library'
+//应用插件
+apply plugin: 'com.github.dcendents.android-maven'
+apply plugin: 'com.jfrog.bintray'
+
+android {
+    compileSdkVersion 25
+    buildToolsVersion "25.0.1"
+
+    defaultConfig {
+        minSdkVersion 14
+        targetSdkVersion 25
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    packagingOptions {
+        exclude 'META-INF/LICENSE.txt'
+    }
+
+    lintOptions {
+        abortOnError false
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    testCompile 'junit:junit:4.12'
+    compile 'com.android.support:appcompat-v7:25.0.1'
+}
+
+//定义公共参数
+def siteUrl = 'https://github.com/felixcc/fpjk-nirvana-sdk-android'   // 项目的主页
+def gitUrl = 'https://github.com/felixcc/fpjk-nirvana-sdk-android.git'   // Git仓库的url
+
+//配置android-maven-gradle-plugin插件
+group = "com.fpjk.nirvana.wjbridge"   // groupId,一般由host+artifactId组成
+version = "1.0.1"  //版本号,以后更新library时,它也要跟着增加
+
+//配置android-maven-gradle-plugin插件
+install {
+    repositories.mavenInstaller {
+        // This generates POM.xml with proper parameters
+        pom {
+            project {
+                packaging 'aar'
+
+                // Add your description here
+                name 'fpjk-nirvana-sdk-android'     //项目的名称
+                description 'a powerful webview-bridge for fpjk-nirvana-sdk-android'  //项目的描述
+                url siteUrl
+
+                // Set your license
+                licenses {
+                    license {
+                        name 'The Apache Software License, Version 2.0'
+                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id 'noblesky'        //bintray的username
+                        name 'felixchen'          //姓名
+                        email 'lovejiuwei@gmail.com'      //邮箱
+                    }
+                }
+
+                scm {
+                    connection gitUrl
+                    developerConnection gitUrl
+                    url siteUrl
+                }
+            }
+        }
+    }
+}
+
+task sourcesJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier = 'sources'
+}
+
+task javadoc(type: Javadoc) {
+    source = android.sourceSets.main.java.srcDirs
+    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives javadocJar
+    archives sourcesJar
+}
+
+//配置gradle-bintray-plugin插件
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+
+//对gradle-bintray-plugin插件的配置,全部写在 bintray{ ... } 中
+bintray {
+    user = properties.getProperty("bintray.user")
+    key = properties.getProperty("bintray.apikey")
+
+    configurations = ['archives']
+
+    pkg {
+        repo = 'maven'
+        name = 'wjbridge'    //artifactId,会作为library的名称显示在JCenter中
+        websiteUrl = siteUrl
+        vcsUrl = gitUrl
+        licenses = ['Apache-2.0']
+        publish = true
+        publicDownloadNumbers = true
+
+        version {
+            desc = 'a powerful webview-bridge for fpjk-nirvana-sdk-android'
+            released = new Date()
+            vcsTag = '1.0.0'
+            gpg {
+                sign = true //Determines whether to GPG sign the files. The default is false
+                passphrase = properties.getProperty("bintray.gpg.password")
+                //Optional. The passphrase for GPG signing'
+            }
+        }
+    }
+}
+
+subprojects {
+    configurations {
+        published
+    }
+    dependencies {
+        testCompile 'junit:junit:4.7'
+    }
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.4'
+}
